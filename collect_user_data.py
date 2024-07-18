@@ -1,55 +1,89 @@
+import tkinter as tk
+from tkinter import messagebox
 import openpyxl
-import re
+from openpyxl.utils import get_column_letter
 
-def is_valid_email(email):
-    # Simple regex for validating an email
-    regex = r'^\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b'
-    return re.match(regex, email)
+class Application(tk.Frame):
+    def __init__(self, master=None):
+        super().__init__(master)
+        self.master = master
+        self.pack()
+        self.create_widgets()
 
-def is_valid_phone(phone):
-    # Regex for validating a phone number (starts with 0, exactly 10 digits)
-    regex = r'^0\d{9}$'
-    return bool(re.match(regex, phone))
+    def create_widgets(self):
+        self.name_label = tk.Label(self, text="Name:", font=("Helvetica", 14), fg="blue")
+        self.name_label.grid(column=0, row=0, padx=10, pady=10)
+        self.name_entry = tk.Entry(self, width=30, font=("Helvetica", 14))
+        self.name_entry.grid(column=1, row=0, padx=10, pady=10)
 
-# Create a new workbook and select the active worksheet
-wb = openpyxl.Workbook()
-ws = wb.active
+        self.surname_label = tk.Label(self, text="Surname:", font=("Helvetica", 14), fg="blue")
+        self.surname_label.grid(column=0, row=1, padx=10, pady=10)
+        self.surname_entry = tk.Entry(self, width=30, font=("Helvetica", 14))
+        self.surname_entry.grid(column=1, row=1, padx=10, pady=10)
 
-# Set the headers in the first row
-ws.append(["Name", "Surname", "Email", "Cellphone Number"])
+        self.email_label = tk.Label(self, text="Email:", font=("Helvetica", 14), fg="blue")
+        self.email_label.grid(column=0, row=2, padx=10, pady=10)
+        self.email_entry = tk.Entry(self, width=30, font=("Helvetica", 14))
+        self.email_entry.grid(column=1, row=2, padx=10, pady=10)
 
-while True:
-    try:
-        # Request user input with validation
-        name = input("Enter your name: ").strip()
-        if not name:
-            raise ValueError("Name cannot be empty.")
+        self.cellphone_label = tk.Label(self, text="Cellphone Number:", font=("Helvetica", 14), fg="blue")
+        self.cellphone_label.grid(column=0, row=3, padx=10, pady=10)
+        self.cellphone_entry = tk.Entry(self, width=30, font=("Helvetica", 14))
+        self.cellphone_entry.grid(column=1, row=3, padx=10, pady=10)
 
-        surname = input("Enter your surname: ").strip()
-        if not surname:
-            raise ValueError("Surname cannot be empty.")
+        self.save_button = tk.Button(self, text="Save", command=self.save_to_excel, font=("Helvetica", 16), fg="green", bg="light green")
+        self.save_button.grid(column=1, row=4, padx=10, pady=10)
 
-        email = input("Enter your email: ").strip()
-        if not is_valid_email(email):
-            raise ValueError("Invalid email format, use format: email@gmail.com")
+        self.data_text = tk.Text(self, width=40, height=10, font=("Helvetica", 12))
+        self.data_text.grid(column=0, row=5, columnspan=2, padx=10, pady=10)
 
-        cellphone = input("Enter your cellphone number: ").strip()
-        if not is_valid_phone(cellphone):
-            raise ValueError("Invalid cellphone number format, use format: 0789654878")
-        
-        # Append the input data to the worksheet
-        ws.append([name, surname, email, cellphone])
+    def save_to_excel(self):
+        try:
+            # Create a new Excel file if it doesn't exist
+            try:
+                wb = openpyxl.load_workbook("user_data.xlsx")
+            except FileNotFoundError:
+                wb = openpyxl.Workbook()
 
-        # Ask if the user wants to add another entry
-        continue_input = input("Do you want to add another person? (yes/no): ").strip().lower()
-        if continue_input != 'yes':
-            break
+            # Get the active sheet
+            sheet = wb.active
 
-    except ValueError as e:
-        print(f"Error: {e}. Please try again.")
+            # Get the data from the entry fields
+            name = self.name_entry.get()
+            surname = self.surname_entry.get()
+            email = self.email_entry.get()
+            cellphone = self.cellphone_entry.get()
 
-# Save the workbook
-file_name = "user_data.xlsx"
-wb.save(file_name)
+            # Add the data to the Excel file
+            sheet.append([name, surname, email, cellphone])
 
-print(f"Data saved to {file_name}")
+            # Save the changes
+            wb.save("user_data.xlsx")
+
+            # Clear the entry fields
+            self.name_entry.delete(0, tk.END)
+            self.surname_entry.delete(0, tk.END)
+            self.email_entry.delete(0, tk.END)
+            self.cellphone_entry.delete(0, tk.END)
+
+            # Show a confirmation message
+            messagebox.showinfo("Success", "Data saved ")
+
+           # Update the Text widget with the data from the Excel file
+            self.data_text.delete(1.0, tk.END)  # Clear the Text widget
+
+            # Add headings
+            headings = ["Name", "Surname", "Email", "Cellphone Number"]
+            self.data_text.tag_config("heading", font=("Helvetica", 12, "bold"), foreground="blue")
+            self.data_text.insert(tk.END, "\t".join(headings) + "\n", "heading")
+
+            # Add data
+            for row in sheet.iter_rows(values_only=True):
+                self.data_text.insert(tk.END, "\t".join(map(str, row)) + "\n")
+        except Exception as e:
+            messagebox.showerror("Error", str(e))
+
+root = tk.Tk()
+root.state("zoomed")  # Maximize the GUI on runtime
+app = Application(master=root)
+app.mainloop()
